@@ -14,6 +14,7 @@ def get_current_location():
     try:
         location_url = f'http://ipinfo.io/?token={ipinfo_api_token}'
         response = requests.get(location_url)
+        print(response)
 
         if response.status_code == 200:
             location_data = response.json()
@@ -32,7 +33,7 @@ def get_current_location():
 def get_weather(latitude, longitude):
     api_key = os.getenv('WEATHER_API_KEY')
     api_url_base = os.getenv('WEATHER_API_URL', 'http://dataservice.accuweather.com')
-    api_url = f'{api_url_base}/locations/v1/cities/geoposition/search'
+    api_url = f'{api_url_base}/locations/v1/cities/geoposition/search.json'
 
     params = {
         'apikey': api_key,
@@ -70,4 +71,4 @@ def weather():
         return jsonify({'error': 'Unable to retrieve current location coordinates'})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=8010)
