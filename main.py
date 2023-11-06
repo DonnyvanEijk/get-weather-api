@@ -1,84 +1,93 @@
 import requests
 from datetime import datetime
-city = input('Give the location of the area u want to check: ')
+
+# Replace 'your_ipinfo_api_token' with your actual API token from ipinfo.io
+ipinfo_api_token = '4fa88e31360ebc'
 
 
-api_key = 'cHpmNfIS7IBvw5tIuJ3OXK3Uw5p1sUFt'
+def get_current_location():
+    try:
+        location_url = f'http://ipinfo.io/?token={ipinfo_api_token}'
+        response = requests.get(location_url)
 
-def get_weather(city):
+        if response.status_code == 200:
+            location_data = response.json()
+            coordinates = location_data.get('loc', '').split(',')
+            if len(coordinates) == 2:
+                latitude, longitude = map(float, coordinates)
+                return latitude, longitude
+            else:
+                return None, None
+        else:
+            return None, None
+    except Exception as e:
+        print(f"Error retrieving current location: {e}")
+        return None, None
 
-    location_key = get_location_key(city)
 
-    if location_key is not None:
+latitude, longitude = get_current_location()
 
-        api_url = f'http://dataservice.accuweather.com/currentconditions/v1/{location_key}'
+if latitude is not None and longitude is not None:
+    # Use the latitude and longitude to get weather information
+    api_key = 'cHpmNfIS7IBvw5tIuJ3OXK3Uw5p1sUFt'
 
+
+    def get_weather(latitude, longitude):
+        api_url = f'http://dataservice.accuweather.com/locations/v1/cities/geoposition/search'
 
         params = {
             'apikey': api_key,
+            'q': f'{latitude},{longitude}'
         }
-
 
         response = requests.get(api_url, params=params)
 
         if response.status_code == 200:
-            weather_data = response.json()[0]
+            location_data = response.json()
+            location_key = location_data['Key']
 
+            api_url = f'http://dataservice.accuweather.com/currentconditions/v1/{location_key}'
 
-            temperature_fahrenheit = weather_data.get('Temperature', {}).get('Imperial', {}).get('Value')
-
-
-            temperature_celsius = (temperature_fahrenheit - 32) * 5/9
-
-            icon = weather_data.get('WeatherIcon')
-            if temperature_celsius >= 10:
-                is_bikeable = True
-            else:
-                is_bikeable = False
-
-            saved_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-            response_data = {
-                "temperature": temperature_celsius,  # Use Celsius if preferred
-                "icon": icon,
-                "bikeable": is_bikeable,
-                "location": {
-                "city": city
-                },
-                "saved_at": saved_at
+            params = {
+                'apikey': api_key,
             }
 
-            return response_data
+            response = requests.get(api_url, params=params)
+
+            if response.status_code == 200:
+                weather_data = response.json()[0]
+
+                temperature_fahrenheit = weather_data.get('Temperature', {}).get('Imperial', {}).get('Value')
+
+                temperature_celsius = (temperature_fahrenheit - 32) * 5 / 9
+
+                icon = weather_data.get('WeatherIcon')
+                if temperature_celsius >= 10:
+                    is_bikeable = True
+                else:
+                    is_bikeable = False
+
+                saved_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                response_data = {
+                    "temperature": temperature_celsius,
+                    "icon": icon,
+                    "bikeable": is_bikeable,
+                    "location": {
+                        "lat": latitude,
+                        "lon": longitude
+                    },
+                    "saved_at": saved_at
+                }
+
+                return response_data
+            else:
+                return {'error': 'Unable to fetch weather data'}
         else:
-            return {'error': 'Unable to fetch weather data'}
-    else:
-        return {'error': 'Location key not found'}
-
-def get_location_key(city):
-
-    location_api_url = 'http://dataservice.accuweather.com/locations/v1/cities/search'
+            return {'error': 'Location not found'}
 
 
-    params = {
-        'apikey': api_key,
-        'q': city,
-    }
-
-
-    response = requests.get(location_api_url, params=params)
-
-    if response.status_code == 200:
-        location_data = response.json()
-        if location_data:
-
-            location_key = location_data[0]['Key']
-            return location_key
-        else:
-            return None
-    else:
-        return None
-
-
-weather_data = get_weather(city)
-print(weather_data)
+    weather_data = get_weather(latitude, longitude)
+    print(weather_data)
+else:
+    print('Unable to retrieve current location coordinates')
