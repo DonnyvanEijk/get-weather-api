@@ -1,8 +1,14 @@
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+import os
 
 # Replace 'your_ipinfo_api_token' with your actual API token from ipinfo.io
-ipinfo_api_token = '4fa88e31360ebc'
+ipinfo_api_token = os.getenv('IPINFOAPITOKEN')
 
 
 def get_current_location():
@@ -29,7 +35,7 @@ latitude, longitude = get_current_location()
 
 if latitude is not None and longitude is not None:
     # Use the latitude and longitude to get weather information
-    api_key = 'cHpmNfIS7IBvw5tIuJ3OXK3Uw5p1sUFt'
+    api_key = os.getenv('APIKEYWEATHER')
 
 
     def get_weather(latitude, longitude):
