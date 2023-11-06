@@ -3,7 +3,7 @@ from datetime import datetime
 city = input('Give the location of the area u want to check: ')
 
 
-api_key = '4GcQzdCg8oE7WbK3dwNfgt7lzsif3ezK'
+api_key = 'cHpmNfIS7IBvw5tIuJ3OXK3Uw5p1sUFt'
 
 def get_weather(city):
 
@@ -31,7 +31,10 @@ def get_weather(city):
             temperature_celsius = (temperature_fahrenheit - 32) * 5/9
 
             icon = weather_data.get('WeatherIcon')
-            is_bikeable = True
+            if temperature_celsius >= 10:
+                is_bikeable = True
+            else:
+                is_bikeable = False
 
             saved_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
