@@ -1,0 +1,25 @@
+[
+  {
+    "LocalObservationDateTime": "2023-11-06T12:07:00+01:00",
+    "EpochTime": 1699268820,
+    "WeatherText": "Partly sunny",
+    "WeatherIcon": 3,
+    "HasPrecipitation": "False",
+    "PrecipitationType": "None",
+    "IsDayTime": "True",
+    "Temperature": {
+      "Metric": {
+        "Value": 12.2,
+        "Unit": "C",
+        "UnitType": 17
+      },
+      "Imperial": {
+        "Value": 52.0,
+        "Unit": "F",
+        "UnitType": 18
+      }
+    },
+    "MobileLink": "http://www.accuweather.com/en/nl/oegstgeest/251510/current-weather/251510?lang=en-us",
+    "Link": "http://www.accuweather.com/en/nl/oegstgeest/251510/current-weather/251510?lang=en-us"
+  }
+]

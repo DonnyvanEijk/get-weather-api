@@ -1,4 +1,4 @@
 .env
 storage
-Mock server/node_modules
+node_modules
 .idea
