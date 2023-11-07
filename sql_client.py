@@ -4,7 +4,6 @@ import mysql.connector
 
 load_dotenv()
 
-
 class SQLClient:
 
     def __init__(self):
@@ -13,7 +12,7 @@ class SQLClient:
             user=os.getenv("MYSQL_USER", "mysql"),
             password=os.getenv("MYSQL_PASSWORD", "mysql"),
             database=os.getenv("MYSQL_DATABASE", "api"),
-            port=int(os.getenv("MYSQL_PORT", "3306")),
+            port=int(os.getenv("MYSQL_PORT", "3307")),
             connection_timeout=int(os.getenv("MYSQL_CONNECTION_TIMEOUT", "180")),
         )
         print("Connected")
