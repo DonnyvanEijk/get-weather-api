@@ -1,4 +1,13 @@
 # get-weather-api
+
+## What does it do
+
+This weather api is useful for fetching data from your current location and gathering weather data from that.
+this can be used for as an example all kinds of weather applications.
+Also, it is important to know when you are using the actually API_URL  of accuweather u will only have 50 requests daily.
+
+
+
 ## Installation Guide
 
 To install you need docker on your pc
@@ -17,5 +26,5 @@ if you meet all the requirements the procedure is the following
 7. and run the python script.
 8. Open the server up on web http://127.0.0.1:5001
 
-
 Now you have the script running the rest of the script explains itself
+

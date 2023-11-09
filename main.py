@@ -73,7 +73,8 @@ def get_weather(latitude, longitude):
     response = requests.get(api_url, params=params)
 
     if response.status_code == 200:
-        location_data = response.json()
+        location_data_unformatted = response.json()
+        location_data = [location_data_unformatted]
         location_key = location_data[0]['Key']
         api_url = f'{api_url_base}/currentconditions/v1/{location_key}'
 
