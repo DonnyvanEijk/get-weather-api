@@ -8,6 +8,19 @@ Also, it is important to know when you are using the actually API_URL  of accuwe
 
 
 
+## How it works
+
+We are using 2 API's on webserver to gather weather data from your location this API keys 
+will be needed to be placed by you bt yourself
+
+
+## Why a weather api?
+
+This is useful in all kinds of ways. From going to weather apps to websites with build in weather displayu
+There are enough things possible with this API
+
+
+
 ## Installation Guide
 
 To install you need docker on your pc
