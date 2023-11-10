@@ -84,7 +84,8 @@ def get_weather(latitude, longitude):
 
         if not response.status_code == 200:
             return jsonify({'error': 'Location search error'})
-
+        if not response.json:
+            return jsonify({'error': 'Json data is invalid'})
         location_data = [response.json()]
         location_key = location_data[0]['Key']
         api_url = f'{api_url_base}/currentconditions/v1/{location_key}'
