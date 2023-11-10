@@ -15,7 +15,6 @@ app = Flask(__name__)
 
 db_client = SQLClient()
 
-# Simple cache to store weather data
 weather_cache = {}
 
 
@@ -100,18 +99,14 @@ def weather():
     create_weather_table()
     latitude, longitude = get_current_location()
 
-    # Check if latitude and longitude are available
     if latitude is None or longitude is None:
         return jsonify({'error': 'Unable to retrieve current location coordinates'})
 
-    # Check if data is in the cache
     cached_data = weather_cache.get((latitude, longitude))
 
-    # Check if cached data is recent
     if cached_data and 'saved_at' in cached_data and isinstance(cached_data['saved_at'], datetime) and datetime.now() - cached_data['saved_at'] < timedelta(hours=1):
         return jsonify(cached_data)
 
-    # Check if data is in the database within the one-hour range
     db_data = db_client.fetch_all(
         "SELECT * FROM weather WHERE lat = %s AND lng = %s ORDER BY saved_at DESC LIMIT 1;",
         (latitude, longitude)
@@ -120,7 +115,6 @@ def weather():
     if db_data:
         db_saved_at = db_data[0]['saved_at']
         if datetime.now() - db_saved_at < timedelta(hours=1):
-            # Data in the database is recent, use it
             response_data = {
                 "temperature": db_data[0]['temperature'],
                 "icon": db_data[0]['icon'],
@@ -128,17 +122,14 @@ def weather():
                 "location": {"lat": latitude, "lng": longitude},
                 "saved_at": db_saved_at.strftime('%Y-%m-%d %H:%M:%S'),
             }
-            # Update the cache
             weather_cache[(latitude, longitude)] = response_data
             return jsonify(response_data)
 
-    # Get weather data from the API
     weather_response = get_weather(latitude, longitude)
 
     if weather_response.status_code != 200:
         return jsonify({'error': 'Unable to retrieve weather data'})
 
-    # Process weather data
     try:
         weather_data = weather_response.json()[0]
         temperature = weather_data['Temperature']['Metric']['Value']
@@ -157,10 +148,8 @@ def weather():
         "saved_at": current_time,
     }
 
-    # Update the cache
     weather_cache[(latitude, longitude)] = response_data
 
-    # Insert into the database only if not in cache or if cached data is older than an hour
     if not db_data or datetime.now() - db_saved_at >= timedelta(hours=1):
         insert_weather_data(response_data)
 

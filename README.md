@@ -25,6 +25,20 @@ There are enough things possible with this API
 The api routes we have used are from the accuweather service. and the ipinfo service route to your host on port 5000 where you will be able to see this data
 also in the dotenv you may find 2 API_URL's u can comment the on out which you don't want to use. Also its important to know that the api url that is connected to accuweather actually grabs it from the API
 but the other url takes it  from a https server which doesnt take api requests.
+And if all sucessfully works you get this response
+
+Example:
+
+{
+"bikeable": false,
+"icon": "Light rain",
+"location": {
+"lat": 52.0363,
+"lng": 4.325
+},
+"saved_at": "2023-11-10 10:26:30",
+"temperature": "11.10"
+}
 
 
 ## Installation Guide
