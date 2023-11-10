@@ -40,6 +40,10 @@ class SQLClient:
         self.cursor.execute(q, values)  # Use the `values` tuple here
         self.db.commit()
 
+    def fetch_one(self, query: str, params=None) -> dict:
+         self.cursor.execute(query, params)
+         return self.cursor.fetchone()
+
     def check_table_exists(self, table_name):
         # Check if the table exists in the database
         check_query = f"SHOW TABLES LIKE '{table_name}'"

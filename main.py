@@ -9,7 +9,6 @@ load_dotenv()
 
 api_key = os.getenv('WEATHER_API_KEY')
 api_url_base = os.getenv('WEATHER_API_URL', 'https://dataservice.accuweather.com')
-
 ipinfo_api_token = os.getenv('IPINFOAPITOKEN')
 
 app = Flask(__name__)
@@ -25,8 +24,8 @@ def create_weather_table():
     CREATE TABLE IF NOT EXISTS weather (
         id INT AUTO_INCREMENT PRIMARY KEY,
         icon VARCHAR(255),
-        lat FLOAT,
-        lng FLOAT,
+        lat VARCHAR(255),
+        lng VARCHAR(255),
         saved_at DATETIME,
         temperature DECIMAL(5, 2)
     );
@@ -34,7 +33,7 @@ def create_weather_table():
     try:
         db_client.query_fix(create_table_query)
     except Exception as e:
-        print(f"Table was not able to set error {e}")
+        return jsonify({'error': f'Table creation error: {e}'})
 
 
 def insert_weather_data(weather_data: dict):
@@ -51,7 +50,7 @@ def insert_weather_data(weather_data: dict):
             table='weather'
         )
     except Exception as e:
-        print(f"Something went wrong with inputting the value into the database \n Error: {e}")
+        return jsonify({'error': f'Database insertion error: {e}'})
 
 
 def get_current_location():
@@ -70,8 +69,7 @@ def get_current_location():
 
         latitude, longitude = map(float, coordinates)
         return latitude, longitude
-    except Exception as e:
-        print(f"Server not found! Error:{e}")
+    except requests.RequestException as e:
         return None, None
 
 
@@ -82,74 +80,91 @@ def get_weather(latitude, longitude):
         'q': f'{latitude},{longitude}'
     }
 
-    response = requests.get(api_url, params=params)
-
-    if not response.status_code == 200:
-        print("There seems to be an issue")
-        # Handle the error appropriately
-
-    location_data = [response.json()]
-    location_key = location_data[0]['Key']
-    api_url = f'{api_url_base}/currentconditions/v1/{location_key}'
-
-    return requests.get(api_url, params=params)
-
-def parse_datetime(saved_at_str):
     try:
-        return datetime.strptime(saved_at_str, '%Y-%m-%d %H:%M:%S')
-    except ValueError:
-        return None
+        response = requests.get(api_url, params=params)
+
+        if not response.status_code == 200:
+            return jsonify({'error': 'Location search error'})
+
+        location_data = [response.json()]
+        location_key = location_data[0]['Key']
+        api_url = f'{api_url_base}/currentconditions/v1/{location_key}'
+
+        return requests.get(api_url, params=params)
+    except requests.RequestException as e:
+        return jsonify({'error': f'Weather API request error: {e}'})
+
 
 @app.route('/')
 def weather():
     create_weather_table()
     latitude, longitude = get_current_location()
 
+    # Check if latitude and longitude are available
+    if latitude is None or longitude is None:
+        return jsonify({'error': 'Unable to retrieve current location coordinates'})
+
     # Check if data is in the cache
     cached_data = weather_cache.get((latitude, longitude))
 
-    if latitude is not None and longitude is not None:
-        if cached_data and 'saved_at' in cached_data and isinstance(cached_data['saved_at'], str):
-            cached_data['saved_at'] = parse_datetime(cached_data['saved_at'])
+    # Check if cached data is recent
+    if cached_data and 'saved_at' in cached_data and isinstance(cached_data['saved_at'], datetime) and datetime.now() - cached_data['saved_at'] < timedelta(hours=1):
+        return jsonify(cached_data)
 
-        if cached_data and 'saved_at' in cached_data and isinstance(cached_data['saved_at'], datetime) and datetime.now() - cached_data['saved_at'] < timedelta(hours=1):
-            return jsonify(cached_data)
-        else:
-            weather_response = get_weather(latitude, longitude)
+    # Check if data is in the database within the one-hour range
+    db_data = db_client.fetch_all(
+        "SELECT * FROM weather WHERE lat = %s AND lng = %s ORDER BY saved_at DESC LIMIT 1;",
+        (latitude, longitude)
+    )
 
-            if weather_response.status_code == 200:
-                weather_data = weather_response.json()[0]
+    if db_data:
+        db_saved_at = db_data[0]['saved_at']
+        if datetime.now() - db_saved_at < timedelta(hours=1):
+            # Data in the database is recent, use it
+            response_data = {
+                "temperature": db_data[0]['temperature'],
+                "icon": db_data[0]['icon'],
+                "bikeable": db_data[0]['temperature'] > 10 and db_data[0]['icon'] == "sunny",
+                "location": {"lat": latitude, "lng": longitude},
+                "saved_at": db_saved_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            # Update the cache
+            weather_cache[(latitude, longitude)] = response_data
+            return jsonify(response_data)
 
-                temperature = weather_data['Temperature']['Metric']['Value']
-                icon = weather_data['WeatherText']
+    # Get weather data from the API
+    weather_response = get_weather(latitude, longitude)
 
-                bikeable = temperature > 10 and icon == "sunny"
+    if weather_response.status_code != 200:
+        return jsonify({'error': 'Unable to retrieve weather data'})
 
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # Process weather data
+    try:
+        weather_data = weather_response.json()[0]
+        temperature = weather_data['Temperature']['Metric']['Value']
+        icon = weather_data['WeatherText']
+    except (IndexError, KeyError):
+        return jsonify({'error': 'Weather data not available or in unexpected format'})
 
-                response_data = {
-                    "temperature": temperature,
-                    "icon": icon,
-                    "bikeable": bikeable,
-                    "location": {
-                        "lat": latitude,
-                        "lng": longitude
-                    },
-                    "saved_at": current_time
-                }
+    bikeable = temperature > 10 and icon == "sunny"
+    current_time = datetime.now()
 
-                # Update the cache
-                weather_cache[(latitude, longitude)] = response_data
+    response_data = {
+        "temperature": temperature,
+        "icon": icon,
+        "bikeable": bikeable,
+        "location": {"lat": latitude, "lng": longitude},
+        "saved_at": current_time,
+    }
 
-                # Insert into the database only if not in cache or if cached data is older than an hour
-                if not cached_data or ('saved_at' not in cached_data) or (datetime.now() - cached_data['saved_at'] >= timedelta(hours=1)):
-                    insert_weather_data(response_data)
+    # Update the cache
+    weather_cache[(latitude, longitude)] = response_data
 
-                return jsonify(response_data)
-            else:
-                return jsonify({'error': 'Unable to retrieve weather data'})
-    else:
-        return jsonify({'error': 'Unable to retrieve current location coordinates'})
+    # Insert into the database only if not in cache or if cached data is older than an hour
+    if not db_data or datetime.now() - db_saved_at >= timedelta(hours=1):
+        insert_weather_data(response_data)
+
+    return jsonify(response_data)
 
 
 if __name__ == '__main__':
